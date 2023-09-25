@@ -1,5 +1,5 @@
-import type { EventType, BackendType } from '@parcel/watcher'
-import * as fs from 'fs'
+import type * as fs from 'node:fs'
+import type { BackendType, EventType } from '@parcel/watcher'
 
 export interface FileSpy {
   readonly cwd: string
@@ -30,7 +30,7 @@ export interface FileSpy {
   on(event: 'ready', callback: () => void): this
 
   /** Crawling failed or the watcher failed. */
-  on(event: 'error', callback: (error: FileSpy.Error) => void): this
+  on(event: 'error', callback: (error: FileSpyError) => void): this
 
   on(
     event: 'all',
@@ -48,43 +48,39 @@ export interface FileSpy {
   close(): Promise<void>
 }
 
-export namespace FileSpy {
-  export interface Options {
-    /**
-     * Emit only the files that match these Recrawl-style globs.
-     *
-     * https://www.npmjs.com/package/recrawl#pattern-syntax
-     */
-    only?: string[]
-    /**
-     * Avoid emitting files and crawling directories that match
-     * these Recrawl-style globs.
-     *
-     * https://www.npmjs.com/package/recrawl#pattern-syntax
-     */
-    skip?: string[]
-    /**
-     * Choose a specific watcher backend.
-     *
-     * The available backends listed in priority order:
-     * - `FSEvents` on macOS
-     * - `Watchman` if installed
-     * - `inotify` on Linux
-     * - `ReadDirectoryChangesW` on Windows
-     */
-    backend?: BackendType
-  }
-
-  export type Error = AccessError | UnknownError
-
-  interface AccessError extends GlobalError {
-    code: 'EACCES'
-    path: string
-  }
-
-  interface UnknownError extends GlobalError {
-    code?: undefined
-  }
+export interface FileSpyOptions {
+  /**
+   * Emit only the files that match these Recrawl-style globs.
+   *
+   * https://www.npmjs.com/package/recrawl#pattern-syntax
+   */
+  only?: string[]
+  /**
+   * Avoid emitting files and crawling directories that match
+   * these Recrawl-style globs.
+   *
+   * https://www.npmjs.com/package/recrawl#pattern-syntax
+   */
+  skip?: string[]
+  /**
+   * Choose a specific watcher backend.
+   *
+   * The available backends listed in priority order:
+   * - `FSEvents` on macOS
+   * - `Watchman` if installed
+   * - `inotify` on Linux
+   * - `ReadDirectoryChangesW` on Windows
+   */
+  backend?: BackendType
 }
 
-type GlobalError = Error
+export type FileSpyError = AccessError | UnknownError
+
+interface AccessError extends Error {
+  code: 'EACCES'
+  path: string
+}
+
+interface UnknownError extends Error {
+  code?: undefined
+}

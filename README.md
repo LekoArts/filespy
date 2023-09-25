@@ -1,17 +1,10 @@
 # filespy
 
-[![npm](https://img.shields.io/npm/v/filespy.svg)](https://www.npmjs.com/package/filespy)
-[![ci](https://github.com/alloc/filespy/actions/workflows/release.yml/badge.svg)](https://github.com/alloc/filespy/actions/workflows/release.yml)
-[![codecov](https://codecov.io/gh/alloc/filespy/branch/master/graph/badge.svg)](https://codecov.io/gh/alloc/filespy)
-[![Bundle size](https://badgen.net/bundlephobia/min/filespy)](https://bundlephobia.com/result?p=filespy)
-[![Code style: Prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
-[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://paypal.me/alecdotbiz)
+This is a fork of [alloc/filespy](https://github.com/alloc/filespy) to keep dependencies up-to-date and do the occasional fix. This package is **ESM only**.
 
 > Spy on files
 
-&nbsp;
-
-### Features
+## Features
 
 - Emits files only
 - Crawls **asynchronously** before watching
@@ -27,8 +20,6 @@
 - Crashes if you don't handle `error` events
 - Waits for root directory to exist
 
-&nbsp;
-
 ## Usage
 
 ```ts
@@ -41,15 +32,18 @@ const spy = filespy(process.cwd(), {
   // "file" argument is relative to "cwd"
   // "stats" is from lstat call
 
-  if (event == 'create') {
+  if (event === 'create') {
     // File created.
-  } else if (event == 'update') {
+  }
+  else if (event === 'update') {
     // File changed.
-  } else {
+  }
+  else {
     // File deleted.
   }
-}).on('error', error => {
+}).on('error', (error) => {
   // Permission error or watcher failed.
+  console.error(error)
 }).on('ready', () => {
   // Initial crawl completed. Watcher initialized.
 })
@@ -66,12 +60,10 @@ spy.list('foo/bar')
 spy.close()
 ```
 
-&nbsp;
-
 ## Events
 
 ```ts
-interface {
+interface Events {
   all(
     event: 'create' | 'update' | 'delete',
     /** Path relative to cwd */
@@ -101,8 +93,6 @@ interface {
   delete(file: string, cwd: string): void
 }
 ```
-
-&nbsp;
 
 ## Pattern syntax
 

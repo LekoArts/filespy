@@ -1,18 +1,22 @@
+import { dirname, resolve } from 'node:path'
+import { EventEmitter } from 'node:events'
+import assert from 'node:assert'
+import * as fs from 'node:fs'
+import process from 'node:process'
+import type {
+  Event,
+  AsyncSubscription as Watcher,
+} from '@parcel/watcher'
 import {
   subscribe as watch,
-  AsyncSubscription as Watcher,
-  Event,
 } from '@parcel/watcher'
-import { waitForPath, WaitForPathResult } from 'wait-for-path'
-import { dirname, resolve } from 'path'
-import { EventEmitter } from 'events'
+import type { WaitForPathResult } from '@lekoarts/wait-for-path'
+import { waitForPath } from '@lekoarts/wait-for-path'
 import { binaryInsert } from 'binary-insert'
-import assert = require('assert')
-import slash = require('slash')
-import * as fs from 'fs'
+import slash from 'slash'
 import { createMatcher } from './glob'
 import { sortPaths } from './sortPaths'
-import type { FileSpy } from './types'
+import type { FileSpy, FileSpyError, FileSpyOptions } from './types'
 
 const fsp = fs.promises
 const { S_IFMT, S_IFDIR } = fs.constants
@@ -26,7 +30,7 @@ const DELETE = 'delete'
 
 export { FileSpy }
 
-export function filespy(cwd: string, opts: FileSpy.Options = {}): FileSpy {
+export function filespy(cwd: string, opts: FileSpyOptions = {}): FileSpy {
   cwd = slash(resolve(cwd)).replace(/\/$/, '')
 
   const only = createMatcher(opts.only) || alwaysTrue
@@ -37,8 +41,8 @@ export function filespy(cwd: string, opts: FileSpy.Options = {}): FileSpy {
   const emitter = new EventEmitter()
   const emit = wrapEmit((event, args) => {
     emitter.emit(event, ...args)
-    if (event == CREATE || event == UPDATE || event == DELETE) {
-      event == DELETE && args.splice(1, 0, null)
+    if (event === CREATE || event === UPDATE || event === DELETE) {
+      event === DELETE && args.splice(1, 0, null)
       emitter.emit('all', event, ...args)
     }
   })
@@ -49,12 +53,14 @@ export function filespy(cwd: string, opts: FileSpy.Options = {}): FileSpy {
 
   // Wait for listeners to be attached.
   setImmediate(() => {
-    if (closed) return
+    if (closed)
+      return
     waiting = waitForPath(cwd)
     waiting
       .then(() => {
         watching = crawl('').then(async () => {
-          if (closed) return
+          if (closed)
+            return
           const watcher = await watch(cwd, processEvents, {
             backend: opts.backend,
             ignore: skipped,
@@ -68,13 +74,12 @@ export function filespy(cwd: string, opts: FileSpy.Options = {}): FileSpy {
       .catch(onError)
   })
 
-  function onError(err: FileSpy.Error) {
-    if (err.code == 'EACCES') {
+  function onError(err: FileSpyError) {
+    if (err.code === 'EACCES') {
       const file = err.path.slice(cwd.length + 1)
       addSkipped(file)
-      if (dirs.has(file)) {
+      if (dirs.has(file))
         removeDir(file)
-      }
     }
     emit('error', err)
     return undefined
@@ -84,12 +89,12 @@ export function filespy(cwd: string, opts: FileSpy.Options = {}): FileSpy {
   async function crawl(dir: string): Promise<any> {
     const children = await fsp.readdir(join(cwd, dir))
     await Promise.all(
-      children.map(name => {
+      children.map((name) => {
         const file = join(dir, name)
         return skip(file, name)
           ? addSkipped(file)
           : addPath(file, name).catch(onError)
-      })
+      }),
     )
     emit('crawl', dir, cwd)
   }
@@ -97,14 +102,13 @@ export function filespy(cwd: string, opts: FileSpy.Options = {}): FileSpy {
   // Promise may reject for permission error.
   async function addPath(file: string, name?: string) {
     const stats = await fsp.lstat(join(cwd, file))
-    if ((stats.mode & S_IFMT) == S_IFDIR) {
+    if ((stats.mode & S_IFMT) === S_IFDIR)
       return addDir(file)
-    }
-    if (only(file, name)) {
+
+    if (only(file, name))
       addFile(file, stats)
-    } else {
+    else
       addSkipped(file)
-    }
   }
 
   // Returns true for directories.
@@ -112,16 +116,16 @@ export function filespy(cwd: string, opts: FileSpy.Options = {}): FileSpy {
     // Protect against permission errors.
     try {
       const stats = fs.lstatSync(join(cwd, file))
-      if ((stats.mode & S_IFMT) == S_IFDIR) {
+      if ((stats.mode & S_IFMT) === S_IFDIR)
         return true
-      }
-      if (only(file)) {
+
+      if (only(file))
         addFile(file, stats)
-      } else {
+      else
         addSkipped(file)
-      }
-    } catch (err) {
-      onError(err)
+    }
+    catch (err) {
+      onError(err as Error)
     }
   }
 
@@ -144,9 +148,9 @@ export function filespy(cwd: string, opts: FileSpy.Options = {}): FileSpy {
     let i = fromIndex
     while (++i < files.length) {
       const file = files[i]
-      if (!isDescendant(file, dir)) {
+      if (!isDescendant(file, dir))
         break
-      }
+
       emit(DELETE, file, cwd)
     }
 
@@ -163,7 +167,7 @@ export function filespy(cwd: string, opts: FileSpy.Options = {}): FileSpy {
     if (fromIndex >= 0) {
       let i = fromIndex
       if (recursive)
-        while (++i < skipped.length && isDescendant(skipped[i], path)) {}
+        while (++i < skipped.length && isDescendant(skipped[i], path)) { /* empty */ }
       else i++
 
       skipped.splice(fromIndex, i - fromIndex)
@@ -171,34 +175,35 @@ export function filespy(cwd: string, opts: FileSpy.Options = {}): FileSpy {
   }
 
   function processEvents(err: Error | null, events: Event[]) {
-    if (err) {
+    if (err)
       return onError(err)
-    }
+
     const dirQueue = new Set<string>()
+    // eslint-disable-next-line no-restricted-syntax, no-labels
     eventLoop: for (let i = 0; i < events.length; i++) {
       const { type, path } = events[i]
       const file = slash(path).slice(cwd.length + 1)
       if (skip(file)) {
         // If the file's directory was skipped *after* the watcher was created,
         // the file still gets added to `skipped` but it's whatever.
-        if (type == CREATE) {
+        if (type === CREATE)
           addSkipped(file)
-        } else if (type == DELETE) {
+        else if (type === DELETE)
           removeSkipped(file, true)
-        }
+
         // The watcher ensures that events for descendants
         // of a directory come right after it.
         while (i + 1 < events.length) {
-          if (isDescendant(events[i + 1].path, path)) {
+          if (isDescendant(events[i + 1].path, path))
             i += 1 // Skip this event since its directory got skipped.
-          } else break
+          else break
         }
         continue
       }
       let stats: fs.Stats | null = null
-      if (type == CREATE) {
+      if (type === CREATE) {
         let dir = dirname(file)
-        if (dir == '.' || dirs.has(dir)) {
+        if (dir === '.' || dirs.has(dir)) {
           if (addPathSync(file)) {
             // Crawl after events are processed.
             dirQueue.add((dir = file))
@@ -206,49 +211,56 @@ export function filespy(cwd: string, opts: FileSpy.Options = {}): FileSpy {
             // The watcher ensures that events for descendants of
             // this directory come right after it.
             while (i + 1 < events.length) {
-              if (isDescendant(events[i + 1].path, path)) {
+              if (isDescendant(events[i + 1].path, path))
                 i += 1 // Skip this event since its directory will be crawled.
-              } else break
+              else break
             }
           }
-        } else {
+        }
+        else {
           // Find the furthest ancestor not yet crawled.
           while (true) {
-            if (skip(dir)) {
+            if (skip(dir))
+              // eslint-disable-next-line no-labels
               continue eventLoop
-            }
+
             const ancestor = dirname(dir)
-            if (ancestor == '.' || dirs.has(ancestor)) break
+            if (ancestor === '.' || dirs.has(ancestor))
+              break
             dir = ancestor
           }
           // Crawl after events are processed.
           dirQueue.add(dir)
         }
-      } else if (dirs.has(file)) {
-        if (type == DELETE) {
+      }
+      else if (dirs.has(file)) {
+        if (type === DELETE)
           removeDir(file)
-        }
-      } else if (only(file)) {
-        if (type == UPDATE) {
+      }
+      else if (only(file)) {
+        if (type === UPDATE) {
           // Protect against permission errors.
           try {
             stats = fs.lstatSync(path)
-          } catch (err) {
-            onError(err)
+          }
+          catch (err) {
+            onError(err as Error)
             continue
           }
           emit(UPDATE, file, stats, cwd)
-        } else {
+        }
+        else {
           emit(DELETE, file, cwd)
         }
-      } else if (type == DELETE) {
+      }
+      else if (type === DELETE) {
         removeSkipped(file)
       }
     }
     return Promise.all(
-      Array.from(dirQueue, dir => {
+      Array.from(dirQueue, (dir) => {
         return addDir(dir).catch(onError)
-      })
+      }),
     )
   }
 
@@ -265,9 +277,9 @@ export function filespy(cwd: string, opts: FileSpy.Options = {}): FileSpy {
       const fromIndex = files.indexOf(dir) + 1
       if (fromIndex > 0) {
         let i = fromIndex
-        while (i < files.length && isDescendant(files[i], dir)) {
+        while (i < files.length && isDescendant(files[i], dir))
           i += 1
-        }
+
         return files.slice(fromIndex, i)
       }
       return []
@@ -275,7 +287,7 @@ export function filespy(cwd: string, opts: FileSpy.Options = {}): FileSpy {
     async close() {
       closed = true
       waiting?.close()
-      return watching?.then(watcher => {
+      return watching?.then((watcher) => {
         watcher?.unsubscribe()
       })
     },
@@ -283,11 +295,11 @@ export function filespy(cwd: string, opts: FileSpy.Options = {}): FileSpy {
 }
 
 function isDescendant(file: string, dir: string) {
-  return file[dir.length] == '/' && dir == file.slice(0, dir.length)
+  return file[dir.length] === '/' && dir === file.slice(0, dir.length)
 }
 
 function join(parent: string, child: string) {
-  return parent ? parent + '/' + child : child
+  return parent ? `${parent}/${child}` : child
 }
 
 type QueuedEmit = [event: string, args: any[]] | null
@@ -304,16 +316,15 @@ function wrapEmit(emitSync: (event: string, args: any[]) => void) {
 
   return (event: string, ...args: any[]) => {
     // Ensure fatal errors are processed synchronously.
-    if (event == 'error' && args[0].code != 'EACCES') {
+    if (event === 'error' && args[0].code !== 'EACCES')
       return emitSync(event, args)
-    }
 
     const [file, stats, cwd] = args
     if (!crawling) {
       // Try to cancel out a "delete" event.
-      if (event == CREATE) {
+      if (event === CREATE) {
         const index = queue.findIndex(
-          e => e && e[0] == DELETE && e[1][0] == file
+          e => e && e[0] === DELETE && e[1][0] === file,
         )
         if (~index) {
           queue[index] = null
@@ -323,9 +334,9 @@ function wrapEmit(emitSync: (event: string, args: any[]) => void) {
       }
 
       // Try to update a "create" or "update" event.
-      else if (event == UPDATE) {
+      else if (event === UPDATE) {
         const index = queue.findIndex(
-          e => e && (e[0] == CREATE || e[0] == UPDATE) && e[1][0] == file
+          e => e && (e[0] === CREATE || e[0] === UPDATE) && e[1][0] === file,
         )
         if (~index) {
           queue[index]![1][1] = stats
@@ -334,30 +345,28 @@ function wrapEmit(emitSync: (event: string, args: any[]) => void) {
       }
 
       // Try to cancel out a "create" or "update" event.
-      else if (event == DELETE) {
+      else if (event === DELETE) {
         const index = queue.findIndex(
-          e => e && (e[0] == CREATE || e[0] == UPDATE) && e[1][0] == file
+          e => e && (e[0] === CREATE || e[0] === UPDATE) && e[1][0] === file,
         )
         if (~index) {
           const [event] = queue[index]!
           queue[index] = null
-          if (event == CREATE) {
+          if (event === CREATE)
             return // Skip "delete" event since "create" was never handled.
-          }
         }
       }
 
       // Process crawl events now that the watcher is ready.
-      else if (event == 'ready') {
+      else if (event === 'ready') {
         processing = false
       }
     }
 
     // Enable event filtering once the root directory is crawled.
-    else if (event == 'crawl') {
-      if (!file) {
+    else if (event === 'crawl') {
+      if (!file)
         crawling = false
-      }
     }
 
     // Listeners may be blocking us, or the watcher is initializing.
@@ -373,13 +382,15 @@ function wrapEmit(emitSync: (event: string, args: any[]) => void) {
   function processEmits(i: number) {
     let elapsed = 0
     for (let e: QueuedEmit; i < queue.length && elapsed < 100; i++) {
+      // eslint-disable-next-line no-cond-assign
       if ((e = queue[i])) {
         queue[i] = null
         const start = Date.now()
         try {
           emitSync(...e)
-        } catch (e) {
-          process.emit('uncaughtException', e)
+        }
+        catch (e) {
+          (process as NodeJS.EventEmitter).emit('uncaughtException', e)
         }
         elapsed += Date.now() - start
       }
@@ -388,7 +399,8 @@ function wrapEmit(emitSync: (event: string, args: any[]) => void) {
       setImmediate(() => {
         processEmits(i)
       })
-    } else {
+    }
+    else {
       queue = []
       processing = false
     }

@@ -1,7 +1,0 @@
-{
-  "repos": {
-    "vendor/wait-for-path": {
-      "url": "https://github.com/aleclarson/wait-for-path"
-    }
-  }
-}

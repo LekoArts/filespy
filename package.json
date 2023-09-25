@@ -1,63 +1,53 @@
 {
-  "name": "filespy",
-  "version": "1.2.4",
-  "description": "Spy on files",
+  "name": "@lekoarts/filespy",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Spy on files, powered by @parcel/watcher",
   "author": "Alec Larson",
-  "license": "MIT",
-  "repository": "alloc/filespy",
-  "main": "dist/filespy.js",
-  "types": "dist/filespy.d.ts",
-  "files": [
-    "src",
-    "dist",
-    "vendor/wait-for-path/src",
-    "!*.test.ts"
+  "contributors": [
+    "LekoArts"
   ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "LICENSE",
+    "README.md",
+    "dist/"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
-    "test": "jest",
-    "build": "rollup -c",
-    "prepare": "indo && yarn build"
+    "build": "tsup",
+    "watch": "pnpm run build --watch",
+    "prepare": "pnpm run build",
+    "test": "vitest --no-threads",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
-    "@parcel/watcher": "^2.0.0-alpha.10",
+    "@parcel/watcher": "^2.3.0",
     "binary-insert": "^1.2.1",
     "glob-regex": "^0.3.2",
-    "slash": "^3.0.0"
+    "slash": "^5.1.0"
   },
   "devDependencies": {
-    "@alloc/prettier-config": "^1.0.0",
+    "@antfu/eslint-config": "1.0.0-beta.10",
     "@cush/exec": "^1.7.1",
-    "@rollup/plugin-node-resolve": "^11.2.0",
+    "@lekoarts/wait-for-path": "^0.0.1",
     "@types/is-windows": "^1.0.0",
-    "@types/jest": "^26.0.20",
+    "@types/node": "^20.6.5",
     "delay": "^5.0.0",
     "dequal": "^2.0.2",
-    "esbuild": "^0.8.36",
-    "esbuild-jest": "npm:@alloc/esbuild-jest@^0.3.0",
-    "filespy": "link:.",
-    "indo": "^0.3.42",
+    "eslint": "^8.50.0",
     "is-windows": "^1.0.2",
-    "jest": "^26.6.3",
-    "prettier": "^2.0.5",
-    "rollup": "^2.38.1",
-    "rollup-plugin-dts": "^2.0.1",
-    "rollup-plugin-esbuild": "^2.6.1",
+    "lint-staged": "^14.0.1",
     "saxon": "^0.2.11",
-    "typescript": "^4.0.0",
-    "wait-for-path": "^0.1.1"
-  },
-  "prettier": "@alloc/prettier-config",
-  "keywords": [
-    "fs",
-    "watch",
-    "watcher",
-    "watchman",
-    "watchFile",
-    "file",
-    "watching",
-    "fsevents",
-    "inotify",
-    "crawl",
-    "chokidar"
-  ]
+    "simple-git-hooks": "^2.9.0",
+    "tsup": "^7.2.0",
+    "typescript": "^5.2.2",
+    "vitest": "^0.34.5"
+  }
 }

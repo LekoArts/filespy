@@ -1,14 +1,14 @@
 {
-  "include": ["src"],
   "compilerOptions": {
-    "declaration": true,
-    "lib": ["es2018"],
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "noEmit": true,
-    "noUnusedLocals": true,
+    "target": "ESNext",
+    "jsx": "react",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
     "strict": true,
-    "sourceMap": true,
-    "target": "es2018"
-  }
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["dist", "**/node_modules/**", "__tests__"]
 }

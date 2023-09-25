@@ -1,14 +1,19 @@
-import { FileSpy, filespy } from 'filespy'
-import * as path from 'path'
+import * as path from 'node:path'
+import process from 'node:process'
 import { dequal } from 'dequal'
 import delay from 'delay'
-import exec = require('@cush/exec')
-import isWindows = require('is-windows')
-import fs = require('saxon/sync')
+import exec from '@cush/exec'
+import isWindows from 'is-windows'
+import fs from 'saxon/sync'
+import type { Mock } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { filespy } from '../index'
+import type { FileSpy, FileSpyError } from '../types'
 
 const throttleDelay = process.env.CI ? 200 : 100
 
 const cwd = path.resolve(__dirname, '__fixtures__')
+console.log({ cwd })
 process.chdir(cwd)
 
 let spy: FileSpy
@@ -16,7 +21,7 @@ let spy: FileSpy
 describe('filespy', () => {
   describe('initial crawl', () => {
     it('emits "create" once per file', async () => {
-      const listener = jest.fn()
+      const listener = vi.fn()
       spy = filespy(cwd).on('all', listener)
 
       await getReadyPromise(spy)
@@ -28,8 +33,8 @@ describe('filespy', () => {
     })
 
     it('emits "crawl" once per directory', async () => {
-      const listener = jest.fn()
-      spy = filespy(cwd).on('crawl', dir => {
+      const listener = vi.fn()
+      spy = filespy(cwd).on('crawl', (dir) => {
         listener('crawl', dir)
       })
 
@@ -75,7 +80,7 @@ describe('filespy', () => {
       spy = filespy(cwd)
       await getReadyPromise(spy)
 
-      const listener = jest.fn()
+      const listener = vi.fn()
       spy.on('all', listener)
       spy.on('crawl', dir => listener('crawl', dir))
 
@@ -98,7 +103,7 @@ describe('filespy', () => {
       addDir('test', ['a', 'b'])
 
       await delay(throttleDelay)
-      const listener = jest.fn()
+      const listener = vi.fn()
       spy.on('all', listener)
       spy.on('crawl', dir => listener('crawl', dir))
 
@@ -118,7 +123,7 @@ describe('filespy', () => {
       spy = filespy(cwd, { skip: ['test', 'bar'] })
       await getReadyPromise(spy)
 
-      const listener = jest.fn()
+      const listener = vi.fn()
       spy.on('all', listener)
 
       // Add a file whose directory was skipped *before* watcher init.
@@ -141,7 +146,7 @@ describe('filespy', () => {
       spy = filespy(cwd, { skip: ['*.md'] })
       await getReadyPromise(spy)
 
-      const listener = jest.fn()
+      const listener = vi.fn()
       spy.on('all', listener)
 
       addFile('a.md')
@@ -224,8 +229,8 @@ describe('filespy', () => {
       await spy.close()
     })
 
-    it('can close before root dir exists', done => {
-      const onError = jest.fn()
+    it('can close before root dir exists', async () => {
+      const onError = vi.fn()
       spy = filespy(path.join(cwd, 'unknown'))
       spy.on('error', onError)
       delay(10).then(() => {
@@ -238,7 +243,6 @@ describe('filespy', () => {
         ]).then(() => {
           expect(closed).toBeTruthy()
           expect(onError).not.toBeCalled()
-          done()
         })
       })
     })
@@ -249,7 +253,7 @@ describe('filespy', () => {
       fs.mkdir('xxx/a', 0o333)
       fs.mkdir('xxx/b', 0o333)
 
-      const errors: FileSpy.Error[] = []
+      const errors: FileSpyError[] = []
       spy = filespy(cwd).on('error', e => errors.push(e))
       await getReadyPromise(spy, true)
 
@@ -261,9 +265,8 @@ describe('filespy', () => {
         return expect(errors).toEqual([])
       }
 
-      if (!errors.some(e => e.code)) {
+      if (!errors.some(e => e.code))
         return expect(errors).not.toEqual(errors)
-      }
 
       // Multiple permission errors can be emitted.
       expect(errors.map(e => e.code)).toMatchInlineSnapshot(`
@@ -303,7 +306,7 @@ afterEach(async () => {
 
 function addDir(dir: string, children: string[], mode?: number) {
   fs.mkdir(dir, mode)
-  children.forEach(file => {
+  children.forEach((file) => {
     fs.write(path.join(dir, file), '')
   })
 }
@@ -319,13 +322,13 @@ function getReadyPromise(spy: FileSpy, skipErrors?: boolean) {
   })
 }
 
-function getEvents(mock: jest.Mock) {
+function getEvents(mock: Mock) {
   const events = mock.mock.calls.map(call => [...call].slice(0, 2))
   mock.mockClear()
   return events
 }
 
-function expectEvents(mock: jest.Mock, expected: any[]) {
+function expectEvents(mock: Mock, expected: any[]) {
   const actual = getEvents(mock)
   expect(actual).toEqual(resolveExpectedEvents(actual, expected))
 }
@@ -336,16 +339,17 @@ function resolveExpectedEvents([...actual]: any[], expected: any[]) {
   const unmatched: any[] = []
 
   // This symbol ensures values are never matched twice.
-  const skip = Symbol()
+  const skip = Symbol('TEST')
 
   for (let i = 0; i < expected.length; i++) {
-    const matchIndex = actual.findIndex(value => {
+    const matchIndex = actual.findIndex((value) => {
       return dequal(expected[i], value)
     })
     if (matchIndex >= 0) {
       matched[matchIndex] = actual[matchIndex]
       actual[matchIndex] = skip
-    } else {
+    }
+    else {
       unmatched.push(expected[i])
     }
   }
