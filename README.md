@@ -23,7 +23,7 @@ This is a fork of [alloc/filespy](https://github.com/alloc/filespy) to keep depe
 ## Usage
 
 ```ts
-import filespy from 'filespy'
+import { filespy } from '@lekoarts/filespy'
 
 const spy = filespy(process.cwd(), {
   only: ['*.[jt]sx?'],

@@ -13,7 +13,6 @@ import type { FileSpy, FileSpyError } from '../types'
 const throttleDelay = process.env.CI ? 200 : 100
 
 const cwd = path.resolve(__dirname, '__fixtures__')
-console.log({ cwd })
 process.chdir(cwd)
 
 let spy: FileSpy
