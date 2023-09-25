@@ -11,6 +11,14 @@
   "publishConfig": {
     "access": "public"
   },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "files": [
     "LICENSE",
     "README.md",
@@ -36,7 +44,7 @@
   "devDependencies": {
     "@antfu/eslint-config": "1.0.0-beta.10",
     "@cush/exec": "^1.7.1",
-    "@lekoarts/wait-for-path": "^0.0.1",
+    "@lekoarts/wait-for-path": "^0.0.2",
     "@types/is-windows": "^1.0.0",
     "@types/node": "^20.6.5",
     "delay": "^5.0.0",
